@@ -37,7 +37,6 @@ module RubyDNS
 
 			begin
 				query = RubyDNS::decode_message(data)
-
 				return server.process_query(query, options, &block)
 			rescue
 				server.logger.error "Error processing request!"

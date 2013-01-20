@@ -21,20 +21,19 @@
 require 'eventmachine'
 require 'stringio'
 require 'resolv'
-
+require 'dnsruby'
 require 'rubydns/extensions/resolv'
 
 module RubyDNS
 	UDP_TRUNCATION_SIZE = 512
 	
 	# The DNS message container.
-	Message = Resolv::DNS::Message
+	Message = Dnsruby::Message
 
 	def self.decode_message(data)
 		if data.respond_to? :force_encoding
 			data.force_encoding("BINARY")
 		end
-		
 		# This may throw Resolv::DNS::DecodeError.
 		Message.decode(data)
 	end

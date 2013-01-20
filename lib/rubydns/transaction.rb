@@ -63,7 +63,7 @@ module RubyDNS
 
 		# Suitable for debugging purposes
 		def to_s
-			"#{name} #{@resource_class.name}"
+			"#{name} #{@resource_class.class.name}"
 		end
 
 		# Run a new query through the rules with the given name and resource type. The
@@ -155,19 +155,8 @@ module RubyDNS
 		# See <tt>Resolv::DNS::Resource</tt> for more information about the various 
 		# <tt>resource_class</tt>s available. 
 		# http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
-		def respond! (*data)
-			options = data.last.kind_of?(Hash) ? data.pop : {}
-			resource_class = options[:resource_class] || @resource_class
-			
-			if resource_class == nil
-				raise ArgumentError, "Could not instantiate resource #{resource_class}!"
-			end
-			
-			@server.logger.info "Resource class: #{resource_class.inspect}"
-			resource = resource_class.new(*data)
-			@server.logger.info "Resource: #{resource.inspect}"
-			
-			append!(resource, options)
+		def respond! (resource)
+			append!(resource)
 		end
 
 		# Append a given set of resources to the answer. The last argument can 
@@ -189,19 +178,13 @@ module RubyDNS
 			else
 				options = {}
 			end
-
-			# Use the default options if provided:
-			options = options.merge(@options)
-
-			options[:ttl] ||= 16000
-			options[:name] ||= @question.to_s + "."
 			
 			method = ("add_" + (options[:section] || 'answer').to_s).to_sym
 
 			resources.each do |resource|
 				@server.logger.debug "#{method}: #{resource.inspect} #{resource.class::TypeValue} #{resource.class::ClassValue}"
 				
-				@answer.send(method, options[:name], options[:ttl], resource)
+				@answer.send(method, resource)
 			end
 
 			succeed if @deferred
@@ -230,9 +213,9 @@ module RubyDNS
 			append_question!
 
 			if rcode.kind_of? Symbol
-				@answer.rcode = Resolv::DNS::RCode.const_get(rcode)
+				@answer.header.rcode = Dnsruby::RCode.const_get(rcode)
 			else
-				@answer.rcode = rcode.to_i
+				@answer.header.rcode = rcode.to_i
 			end
 
 			# The transaction itself has completed, but contains a failure:

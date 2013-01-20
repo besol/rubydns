@@ -156,7 +156,7 @@ module RubyDNS
 		# If a rule returns false, it is considered that the rule failed and
 		# futher matching is carried out.
 		def process(name, resource_class, *args)
-			@logger.debug "Searching for #{name} #{resource_class.name}"
+			@logger.debug "Searching for #{name} #{resource_class.class.name}"
 
 			@rules.each do |rule|
 				@logger.debug "Checking rule #{rule}..."
@@ -177,14 +177,17 @@ module RubyDNS
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
 		def process_query(query, options = {}, &block)
+			p query.additional.to_s.include? "flags 32768"
 			# Setup answer
-			answer = Resolv::DNS::Message::new(query.id)
-			answer.qr = 1                 # 0 = Query, 1 = Response
-			answer.opcode = query.opcode  # Type of Query; copy from query
-			answer.aa = 1                 # Is this an authoritative response: 0 = No, 1 = Yes
-			answer.rd = query.rd          # Is Recursion Desired, copied from query
-			answer.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
-			answer.rcode = 0              # Response code: 0 = No errors
+			answer = Dnsruby::Message::new()
+			answer.header.id = query.header.id
+			answer.header.qr = 1                 # 0 = Query, 1 = Response
+			answer.header.opcode = query.header.opcode  # Type of Query; copy from query
+			answer.header.aa = 1                 # Is this an authoritative response: 0 = No, 1 = Yes
+			answer.header.rd = query.header.rd          # Is Recursion Desired, copied from query
+			answer.header.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
+			answer.header.rcode = 0              # Response code: 0 = No errors
+			answer.security_level = query.additional.to_s.include? "flags 32768" ? "2" : "0"
 
 			# 1/ This chain contains a reverse list of question lambdas.
 			chain = []
@@ -196,13 +199,14 @@ module RubyDNS
 			end
 
 			# There may be multiple questions per query
-			query.question.reverse.each do |question, resource_class|
+			query.question.reverse.each do |question|
+				
 				next_link = chain.last
 
 				chain << lambda do
-					@logger.debug "Processing question #{question} #{resource_class}..."
+					@logger.debug "Processing question #{question.qname} #{question.qtype}..."
 
-					transaction = Transaction.new(self, query, question, resource_class, answer, options)
+					transaction = Transaction.new(self, query, question.qname, question.qtype, answer, options)
 					
 					# Call the next link in the chain:
 					transaction.callback do
@@ -220,7 +224,7 @@ module RubyDNS
 							@logger.error "#{response.inspect}"
 						end
 
-						answer.rcode = Resolv::DNS::RCode::ServFail
+						answer.header.rcode = Dnsruby::RCode::SERVFAIL
 
 						chain.first.call
 					end
