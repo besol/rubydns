@@ -156,7 +156,7 @@ module RubyDNS
 		# If a rule returns false, it is considered that the rule failed and
 		# futher matching is carried out.
 		def process(name, resource_class, *args)
-			@logger.debug "Searching for #{name} #{resource_class.class.name}"
+			@logger.debug "Searching for #{name} #{resource_class.to_s}"
 
 			@rules.each do |rule|
 				@logger.debug "Checking rule #{rule}..."
@@ -170,14 +170,13 @@ module RubyDNS
 			if @otherwise
 				@otherwise.call(*args)
 			else
-				@logger.warn "Failed to handle #{name} #{resource_class.name}!"
+				@logger.warn "Failed to handle #{name} #{resource_class.to_s}!"
 			end
 		end
 
 		# Process an incoming DNS message. Returns a serialized message to be
 		# sent back to the client.
 		def process_query(query, options = {}, &block)
-			p query.additional.to_s.include? "flags 32768"
 			# Setup answer
 			answer = Dnsruby::Message::new()
 			answer.header.id = query.header.id
@@ -187,7 +186,7 @@ module RubyDNS
 			answer.header.rd = query.header.rd          # Is Recursion Desired, copied from query
 			answer.header.ra = 0                 # Does name server support recursion: 0 = No, 1 = Yes
 			answer.header.rcode = 0              # Response code: 0 = No errors
-			answer.security_level = query.additional.to_s.include? "flags 32768" ? "2" : "0"
+			answer.security_level = query.additional.to_s.include?("flags 32768") ? 2 : 0
 
 			# 1/ This chain contains a reverse list of question lambdas.
 			chain = []

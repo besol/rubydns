@@ -61,9 +61,21 @@ module RubyDNS
 			@question.to_s
 		end
 
+		def qname
+			@question.to_s
+		end
+
+		def remote_ip
+			@options[:peer]
+		end
+
+		def qtype
+			@resource_class.to_s
+		end
+
 		# Suitable for debugging purposes
 		def to_s
-			"#{name} #{@resource_class.class.name}"
+			"#{name} #{@resource_class.to_s}"
 		end
 
 		# Run a new query through the rules with the given name and resource type. The
@@ -157,6 +169,10 @@ module RubyDNS
 		# http://www.ruby-doc.org/stdlib/libdoc/resolv/rdoc/index.html
 		def respond! (resource)
 			append!(resource)
+		end
+
+		def additional! (resource)
+			@answer.add_additional(resource)
 		end
 
 		# Append a given set of resources to the answer. The last argument can 
