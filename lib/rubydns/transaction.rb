@@ -61,7 +61,7 @@ module RubyDNS
 			@question.to_s
 		end
 
-		def qname
+		def query_name
 			@question.to_s
 		end
 
@@ -69,7 +69,7 @@ module RubyDNS
 			@options[:peer]
 		end
 
-		def qtype
+		def query_type
 			@resource_class.to_s
 		end
 
